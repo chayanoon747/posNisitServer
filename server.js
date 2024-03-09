@@ -1,47 +1,497 @@
-const fs = require('fs');
+const express = require('express');
+const cors = require('cors');
 const ftpClient = require('ftp');
+const nodemailer = require('nodemailer');
+const axios = require('axios');
+const app = express();
 
-const config = require('./config.json');
+app.use(cors());
+app.use(express.json()); // เพิ่ม middleware เพื่อให้ Express สามารถอ่านข้อมูล JSON จาก body ของ request ได้
 
-const ftp = new ftpClient();
+// อ่านข้อมูลลงใน ftp server
+app.get('/readFileFromFTP/:filename', (req, res) => {
+    const ftp = new ftpClient();
+    ftp.connect({
+        host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
+        user: 'chayanon',
+        password: '0816538747'
+    });
 
-ftp.connect({
-    host: config.FTP.host,
-    user: config.FTP.username,
-    password: config.FTP.password
-});
+    ftp.on('ready', () => {
+        const filename = req.params.filename; // รับชื่อไฟล์จาก parameter ใน URL
 
-ftp.on('ready', () => {
-    function downloadFile(filename) {
         ftp.get(filename, (err, stream) => {
             if (err) {
                 console.error("Error occurred:", err);
+                res.status(500).send("Internal Server Error");
             } else {
-                stream.once('close', () => ftp.end());
-                stream.pipe(fs.createWriteStream(filename));
-                console.log("Download successful.");
+                let data = '';
+
+                stream.on('data', chunk => {
+                    data += chunk.toString(); // เพิ่มข้อมูลที่ได้จาก stream ไปยังตัวแปร data
+                });
+
+                stream.on('end', () => {
+                    ftp.end(); // หลังจากอ่านข้อมูลเสร็จสิ้น ปิดการเชื่อมต่อ FTP
+                    console.log("Read successful.");
+
+                    // ส่งข้อมูลกลับไปยัง client
+                    res.send(data);
+                });
             }
         });
-    }
-
-    ftp.list((err, list) => {
-        if (err) {
-            console.error("Error:", err);
-        } else {
-            console.log("List of files:");
-            list.forEach(item => console.log(item.name));
-            const readline = require('readline').createInterface({
-                input: process.stdin,
-                output: process.stdout
-            });
-            readline.question('Filename: ', (filename) => {
-                downloadFile(filename);
-                readline.close();
-            });
-        }
     });
 });
 
-ftp.on('error', (err) => {
-    console.error("FTP connection error:", err);
+// เขียนข้อมูลลงใน FTP server ในรูปแบบ JSON
+app.post('/writeJsonFileToFTP', (req, res) => {
+    const ftp = new ftpClient();
+    const filename = req.body.filename; // รับชื่อไฟล์จาก body ของ request
+    const jsonData = req.body.data; // รับข้อมูล JSON จาก body ของ request
+
+    ftp.connect({
+        host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
+        user: 'chayanon',
+        password: '0816538747'
+    });
+
+    ftp.on('ready', () => {
+        // ตรวจสอบว่าไฟล์ที่จะเขียนมีอยู่แล้วหรือไม่
+        ftp.size(filename, (err, size) => {
+            if (!err) {
+                console.log("File already exists:", filename);
+                res.send("File already exists");
+                return;
+            }
+    
+            const jsonString = JSON.stringify(jsonData); // แปลงข้อมูล JSON เป็น string
+            ftp.put(Buffer.from(jsonString), filename, (err) => {
+                if (err) {
+                    console.error("Error occurred:", err);
+                    res.status(500).send("Internal Server Error");
+                } else {
+                    console.log("Write successful.");
+                    ftp.end(); // ปิดการเชื่อมต่อ FTP
+                    res.status(200).send("Write successful.");
+                }
+            });
+        });
+    });
+});
+
+app.post('/writeJsonFileToFolderNisitInFTP', async(req, res) => {
+    const ftp = new ftpClient();
+    
+    const callApi = async () => {
+        try {
+            const response = await axios.get('http://127.0.0.1:8000/');
+            console.log(response.data);
+            return response.data;
+        } catch (error) {
+            console.log(error);
+            throw error; // ส่ง error ออกไปให้ catch ด้านนอกจัดการ
+        }
+    };
+
+    try {
+        let uuid = await callApi();
+        console.log(`${uuid} hello`);
+
+        const studentID = req.body.studentID;
+        const username = req.body.username;
+        const firstname = req.body.firstname;
+        const lastname = req.body.lastname;
+        const cash = req.body.cash;
+        const point = req.body.point;
+
+        const jsonData = {
+            studentID: studentID,
+            username: username,
+            firstname: firstname,
+            lastname: lastname,
+            cash: cash,
+            point: point
+        };
+
+        const folderName = 'Nisit'; // ชื่อโฟลเดอร์ที่ต้องการสร้างไฟล์ JSON ในนี้
+        const filename = folderName + '/' + `${uuid.cardID}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์
+
+        ftp.connect({
+            host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
+            user: 'chayanon',
+            password: '0816538747'
+        });
+
+        ftp.on('ready', () => {
+            // ตรวจสอบว่าโฟลเดอร์ "Nisit" มีอยู่หรือไม่
+            ftp.list('/', (err, list) => {
+                if (err) {
+                    console.error("Error occurred while checking folder:", err);
+                    res.status(500).send("Internal Server Error");
+                    return;
+                }
+
+                // ตรวจสอบว่าโฟลเดอร์ "Nisit" มีอยู่หรือไม่
+                const folderExists = list.some(item => item.type === 'd' && item.name === folderName);
+
+                // ถ้าโฟลเดอร์ยังไม่มีอยู่ ให้สร้างโฟลเดอร์ "Nisit" ก่อน
+                if (!folderExists) {
+                    ftp.mkdir(folderName, (err) => {
+                        if (err) {
+                            console.error("Error occurred while creating folder:", err);
+                            res.status(500).send("Internal Server Error");
+                            return;
+                        }
+
+                        console.log("Folder creation successful:", folderName);
+                        // ทำการสร้างไฟล์ JSON หลังจากสร้างโฟลเดอร์เสร็จสิ้น
+                        createJsonFile();
+                    });
+                } else {
+                    // ถ้าโฟลเดอร์ "Nisit" มีอยู่แล้ว ให้ทำการสร้างไฟล์ JSON ทันที
+                    createJsonFile();
+                }
+            });
+        });
+
+        function createJsonFile() {
+            ftp.size(filename, (err, size) => {
+                const jsonString = JSON.stringify(jsonData); // แปลงข้อมูล JSON เป็น string
+                if (!err) {
+                    console.log("File already exists:", filename);
+                    res.send("File already exists");
+                    return;
+                }
+
+                ftp.put(Buffer.from(jsonString), filename, (err) => {
+                    if (err) {
+                        console.error("Error occurred while writing JSON file:", err);
+                        res.status(500).send("Internal Server Error");
+                    } else {
+                        console.log("Write successful:", filename);
+                        ftp.end(); // ปิดการเชื่อมต่อ FTP
+                        res.status(200).send("Write successful.");
+                    }
+                });
+            });
+        }
+    } catch (error) {
+        console.error("Error occurred:", error);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+
+app.post('/topUpCashCard', (req, res) => {
+    const ftp = new ftpClient();
+    const uuid = req.body.uuid
+    let cash = req.body.cash;
+
+    ftp.connect({
+        host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
+        user: 'chayanon',
+        password: '0816538747'
+    });
+
+    ftp.on('ready', () => {
+        const folderName = 'Nisit';
+        const filename = folderName + `/${uuid}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์และชื่อไฟล์
+
+        ftp.get(filename, (err, stream) => {
+            if (err) {
+                //console.error("Error occurred while reading file:", err);
+                //res.status(500).send("Internal Server Error");
+                res.status(200).send("Not member, please sign up first")
+                return;
+            }
+
+            let data = '';
+
+            stream.on('data', chunk => {
+                data += chunk.toString(); // เพิ่มข้อมูลที่ได้จาก stream ไปยังตัวแปร data
+            });
+
+            stream.on('end', () => {
+                try {
+                    const jsonData = JSON.parse(data); // แปลงข้อมูล JSON จาก string เป็น object
+                    
+                    // อัปเดตข้อมูลใน JSON
+                    jsonData.cash += cash; // ลดจำนวนเงินในบัญชี
+
+                    // แปลงข้อมูล JSON กลับเป็น string
+                    const updatedData = JSON.stringify(jsonData);
+
+                    // เขียนข้อมูลลงในไฟล์บน FTP server
+                    ftp.put(Buffer.from(updatedData), filename, (err) => {
+                        if (err) {
+                            console.error("Error occurred while updating file:", err);
+                            res.status(500).send("Internal Server Error");
+                        } else {
+                            console.log(`Update data ${filename} successfully`);
+                            res.status(200).json(jsonData); // ส่งข้อมูล JSON กลับไปยังผู้ใช้
+                        }
+                        ftp.end(); // ปิดการเชื่อมต่อ FTP
+                    });
+                } catch (error) {
+                    console.error("Error occurred while parsing JSON:", error);
+                    res.status(500).send("Internal Server Error");
+                }
+            });
+        });
+    });
+});
+
+app.post('/updateDataNisit', (req, res) => {
+    const ftp = new ftpClient();
+    const uuid = req.body.uuid
+    let cash = req.body.cash;
+
+    ftp.connect({
+        host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
+        user: 'chayanon',
+        password: '0816538747'
+    });
+
+    ftp.on('ready', () => {
+        const folderName = 'Nisit';
+        const filename = folderName + `/${uuid}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์และชื่อไฟล์
+
+        ftp.get(filename, (err, stream) => {
+            if (err) {
+                //console.error("Error occurred while reading file:", err);
+                //res.status(500).send("Internal Server Error");
+                res.status(200).send("Not member, please sign up first")
+                return;
+            }
+
+            let data = '';
+
+            stream.on('data', chunk => {
+                data += chunk.toString(); // เพิ่มข้อมูลที่ได้จาก stream ไปยังตัวแปร data
+            });
+
+            stream.on('end', () => {
+                try {
+                    const jsonData = JSON.parse(data); // แปลงข้อมูล JSON จาก string เป็น object
+                    // แก้ไขค่า cash และ point
+                    if (jsonData.cash - cash < 0) {
+                        console.log("Not enough money")
+                        res.status(200).send("Not enough money");
+                        ftp.end();
+                        return;
+                    }
+                    
+                    // อัปเดตข้อมูลใน JSON
+                    let point = cash * 5 / 100; // ได้แต้ม 5% จากราคาชำระ
+                    jsonData.cash -= cash; // ลดจำนวนเงินในบัญชี
+                    jsonData.point += point; // เพิ่มจำนวนแต้ม
+
+                    // แปลงข้อมูล JSON กลับเป็น string
+                    const updatedData = JSON.stringify(jsonData);
+
+                    // เขียนข้อมูลลงในไฟล์บน FTP server
+                    ftp.put(Buffer.from(updatedData), filename, (err) => {
+                        if (err) {
+                            console.error("Error occurred while updating file:", err);
+                            res.status(500).send("Internal Server Error");
+                        } else {
+                            console.log(`Update data ${filename} successfully`);
+                            res.status(200).json(jsonData); // ส่งข้อมูล JSON กลับไปยังผู้ใช้
+                        }
+                        ftp.end(); // ปิดการเชื่อมต่อ FTP
+                    });
+                } catch (error) {
+                    console.error("Error occurred while parsing JSON:", error);
+                    res.status(500).send("Internal Server Error");
+                }
+            });
+        });
+    });
+});
+
+app.get('/retrieveDataNisit', (req, res) => {
+    const ftp = new ftpClient();
+    const data = [];
+
+    ftp.connect({
+        host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
+        user: 'chayanon',
+        password: '0816538747'
+    });
+
+    ftp.on('ready', () => {
+        ftp.list('/Nisit', (err, list) => {
+            if (err) {
+                console.error("Error occurred while listing files:", err);
+                res.status(500).send("Internal Server Error");
+                return;
+            }
+        
+            // วนลูปผ่านรายการไฟล์ในโฟลเดอร์ "Nisit"
+            for (let i = 0; i < list.length; i++) {
+                const item = list[i];
+                // ตรวจสอบว่าไฟล์นี้เป็นไฟล์ที่ต้องการหรือไม่
+                if (item.type === '-') { // ตรวจสอบว่าเป็นไฟล์ (ไม่ใช่โฟลเดอร์)
+                    const filename = item.name;
+                    const filepath = '/Nisit/' + filename;
+        
+                    // อ่านเนื้อหาของไฟล์
+                    ftp.get(filepath, (err, stream) => {
+                        if (err) {
+                            //console.error("Error occurred while reading file:", err);
+                            // สามารถทำการให้การตอบกลับอื่น ๆ หรือการจัดการข้อผิดพลาดตามที่คุณต้องการได้
+                            return;
+                        }
+        
+                        // เก็บเนื้อหาของไฟล์ไว้ใน buffer
+                        let buffer = Buffer.alloc(0);
+                        stream.on('data', (chunk) => {
+                            buffer = Buffer.concat([buffer, chunk]);
+                        });
+        
+                        stream.on('end', () => {
+                            const fileContent = buffer.toString();
+                            console.log(`File content of ${filename}:`, fileContent);
+                            data.push(fileContent);
+                            
+                            // ตรวจสอบว่าเสร็จสิ้นการดึงข้อมูลทั้งหมดหรือไม่ก่อนส่ง response
+                            if (data.length === list.length) {
+                                const parsedData = data.map(item => JSON.parse(item));
+                                res.send(parsedData);
+                            }
+                        });
+                    });
+                }
+            }
+        });
+    });
+});
+
+app.post('/retrieveDataNisitWithUUID', (req, res) => {
+    const ftp = new ftpClient();
+    //const uuid = req.body.uuid
+    let uuid = '';
+    axios.get('http://127.0.0.1:8000/')
+    .then(response => {
+      console.log(response.data);
+      uuid = response.data;
+    })
+    .catch(error => {
+      console.log(error);
+    });
+
+    ftp.connect({
+        host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
+        user: 'chayanon',
+        password: '0816538747'
+    });
+
+    ftp.on('ready', () => {
+        const folderName = 'Nisit';
+        const filename = folderName + `/${uuid}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์และชื่อไฟล์
+
+        ftp.get(filename, (err, stream) => {
+            if (err) {
+                //console.error("Error occurred while reading file:", err);
+                //res.status(500).send("Internal Server Error");
+                res.status(200).send("Not member, please sign up first")
+                return;
+            }
+
+            let data = '';
+
+            stream.on('data', chunk => {
+                data += chunk.toString(); // เพิ่มข้อมูลที่ได้จาก stream ไปยังตัวแปร data
+            });
+
+            stream.on('end', () => {
+                try {
+                    const jsonData = JSON.parse(data); // แปลงข้อมูล JSON จาก string เป็น object
+                    console.log(`retrieve data ${filename} successfully`);
+                    res.status(200).json(jsonData); // ส่งข้อมูล JSON กลับไปยังผู้ใช้
+                    ftp.end();
+                } catch (error) {
+                    console.error("Error occurred while parsing JSON:", error);
+                    res.status(500).send("Internal Server Error");
+                }
+            });
+        });
+    });
+});
+
+let sentOTP;
+
+app.post('/verifyOTP', (req, res) => {
+    const receivedOTP = req.body.receivedOTP; // otp ที่ผู้ใช้ส่งกลับมา
+    console.log(sentOTP)
+    // เปรียบเทียบ otp ที่ผู้ใช้ส่งกลับมากับ otp ที่ส่งไป
+    if (receivedOTP === sentOTP) {
+        res.status(200).send("OTP match. User verified successfully.");
+    } else {
+        res.status(200).send("OTP do not match. User verification failed.");
+    }
+});
+
+app.post('/sendSMTPToEmail', async (req, res) => {
+    const emailSender = req.body.emailSender;
+    const passwordSender = req.body.passwordSender;
+    const usernameReceiver = req.body.usernameReceiver;
+
+    function generateRandomCode() {
+        const min = 100000;
+        const max = 999999;
+        return (Math.floor(min + Math.random() * (max - min))).toString();
+    }
+
+    try {
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: emailSender,
+                pass: passwordSender
+            }
+        });
+
+        const verification = await transporter.verify();
+        if (verification) {
+            console.log("Connect server successfully");
+
+            // สร้างรหัสสุ่ม 6 หลักที่ประกอบด้วยตัวเลขเท่านั้น
+            const randomOTP = generateRandomCode();
+
+            const mailOptions = {
+                from: emailSender,
+                to: `${usernameReceiver}@ku.th`,
+                subject: `OTP from ${emailSender}`,
+                text: `Your OTP is: ${randomOTP}`
+            };
+
+            const info = await transporter.sendMail(mailOptions);
+            console.log("Send Mail Successfully:", info.response);
+
+            sentOTP = randomOTP;
+
+            res.status(200).send(randomOTP);
+        } else {
+            console.error("Incorrect account or password");
+            res.status(500).send("Incorrect account or password");
+        }
+    } catch (err) {
+        console.error("Error with file:", err);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+
+
+
+
+
+
+
+
+
+const PORT = 3001;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
