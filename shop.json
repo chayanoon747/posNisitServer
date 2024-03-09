@@ -1,0 +1,26 @@
+{
+    "data":[
+        {
+            "ShopID": "",
+            "name": "shop1",
+            "photoURL": "",
+            "menu":[
+                {"menu": "menu1", "price": 0},
+                {"menu": "menu2", "price": 0},
+                {"menu": "menu3", "price": 0},
+                {"menu": "menu4", "price": 0}
+            ]
+        },
+        {
+            "ShopID": "",
+            "name": "shop2",
+            "photoURL": "",
+            "menu":[
+                {"menu": "menu1", "price": 0},
+                {"menu": "menu2", "price": 0},
+                {"menu": "menu3", "price": 0},
+                {"menu": "menu4", "price": 0}
+            ]
+        }
+    ]
+}
