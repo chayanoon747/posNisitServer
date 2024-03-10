@@ -15,7 +15,7 @@ app.use(express.json()); // เพิ่ม middleware เพื่อให้ 
 
 const callUUID = async () => {
     try {
-        const response = await axios.get('http://101.109.155.246:8000/');
+        const response = await axios.get('http://legendaryknights.ddns.net:8000/');
         console.log(response.data);
         return response.data;
     } catch (error) {
@@ -23,7 +23,7 @@ const callUUID = async () => {
         throw error; // ส่ง error ออกไปให้ catch ด้านนอกจัดการ
     }
 };
-
+/*
 // อ่านข้อมูลลงใน ftp server
 app.get('/readFileFromFTP/:filename', (req, res) => {
     const ftp = new ftpClient();
@@ -86,15 +86,15 @@ app.post('/writeJsonFileToFTP', (req, res) => {
                     console.error("Error occurred:", err);
                     res.status(500).send("Internal Server Error");
                 } else {
-                    console.log("Write successful.");
+                    console.log("Write successful");
                     ftp.end(); // ปิดการเชื่อมต่อ FTP
-                    res.status(200).send("Write successful.");
+                    res.status(200).send("Write successful");
                 }
             });
         });
     });
 });
-
+*/
 app.post('/writeJsonFileToFolderDatabaseInFTP', async(req, res) => {
     const ftp = new ftpClient();
     
@@ -185,7 +185,7 @@ app.post('/writeJsonFileToFolderDatabaseInFTP', async(req, res) => {
                     } else {
                         console.log("Write successful:", filename);
                         ftp.end(); // ปิดการเชื่อมต่อ FTP
-                        res.status(200).send("Write successful.");
+                        res.status(200).send("Write successful");
                     }
                 });
             });
@@ -410,7 +410,7 @@ app.get('/retrieveDataNisit', (req, res) => {
                             // ตรวจสอบว่าเสร็จสิ้นการดึงข้อมูลทั้งหมดหรือไม่ก่อนส่ง response
                             if (data.length === list.length) {
                                 const parsedData = data.map(item => JSON.parse(item));
-                                res.send(parsedData);
+                                res.status(200).send(parsedData);
                             }
                         });
                     });
@@ -559,7 +559,7 @@ app.get('/retrieveShop', (req, res) => {
         try {
             // แปลงข้อมูล JSON เป็น Object
             const shopData = JSON.parse(data);
-            res.json(shopData.payload); // ส่ง response ค่าข้อมูลของร้านค้ากลับไป
+            res.status(200).json(shopData.payload); // ส่ง response ค่าข้อมูลของร้านค้ากลับไป
         } catch (error) {
             console.error("Error parsing JSON:", error);
             res.status(500).send("Internal Server Error");
@@ -707,7 +707,7 @@ app.post('/createTransactionShop', async(req, res) => {
                     } else {
                         console.log("Write successful:", filename);
                         ftp.end(); // ปิดการเชื่อมต่อ FTP
-                        res.status(200).send("Write successful.");
+                        res.status(200).send("Write successful");
                     }
                 });
             });
@@ -864,7 +864,7 @@ app.post('/createTransactionPayment', async(req, res) => {
                     } else {
                         console.log("Write successful:", filename);
                         ftp.end(); // ปิดการเชื่อมต่อ FTP
-                        res.status(200).send("Write successful.");
+                        res.status(200).send("Write successful");
                     }
                 });
             });
@@ -1012,7 +1012,7 @@ app.post('/createTransactionTopUp', async(req, res) => {
                     } else {
                         console.log("Write successful:", filename);
                         ftp.end(); // ปิดการเชื่อมต่อ FTP
-                        res.status(200).send("Write successful.");
+                        res.status(200).send("Write successful");
                     }
                 });
             });
@@ -1022,14 +1022,6 @@ app.post('/createTransactionTopUp', async(req, res) => {
         res.status(500).send("Internal Server Error");
     }
 });
-
-
-
-
-
-
-
-
 
 const PORT = 3001;
 app.listen(PORT, () => {
