@@ -6,13 +6,16 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 const app = express();
+const host = '127.0.0.1';
+const user = 'chayanon';
+const password = '0816538747';
 
 app.use(cors());
 app.use(express.json()); // เพิ่ม middleware เพื่อให้ Express สามารถอ่านข้อมูล JSON จาก body ของ request ได้
 
 const callUUID = async () => {
     try {
-        const response = await axios.get('http://127.0.0.1:8000/');
+        const response = await axios.get('http://101.109.155.246:8000/');
         console.log(response.data);
         return response.data;
     } catch (error) {
@@ -25,9 +28,9 @@ const callUUID = async () => {
 app.get('/readFileFromFTP/:filename', (req, res) => {
     const ftp = new ftpClient();
     ftp.connect({
-        host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-        user: 'chayanon',
-        password: '0816538747'
+        host: host, 
+        user: user,
+        password: password
     });
 
     ftp.on('ready', () => {
@@ -63,9 +66,9 @@ app.post('/writeJsonFileToFTP', (req, res) => {
     const jsonData = req.body.data; // รับข้อมูล JSON จาก body ของ request
 
     ftp.connect({
-        host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-        user: 'chayanon',
-        password: '0816538747'
+        host: host, 
+        user: user,
+        password: password
     });
 
     ftp.on('ready', () => {
@@ -92,11 +95,22 @@ app.post('/writeJsonFileToFTP', (req, res) => {
     });
 });
 
-app.post('/writeJsonFileToFolderNisitInFTP', async(req, res) => {
+app.post('/writeJsonFileToFolderDatabaseInFTP', async(req, res) => {
     const ftp = new ftpClient();
     
     try {
         let uuid = await callUUID();
+
+        if(uuid.status == false){
+            if(uuid.message == "กรุณาแนบบัตร"){
+                res.status(200).send("กรุณาแนบบัตร")
+                return;
+            }
+            else if(uuid.message == "ไม่พบเครื่องอ่านบัตร"){
+                res.status(200).send("ไม่พบเครื่องอ่านบัตร")
+                return;
+            }
+        }
 
         const studentID = req.body.studentID;
         const username = req.body.username;
@@ -114,17 +128,17 @@ app.post('/writeJsonFileToFolderNisitInFTP', async(req, res) => {
             point: point
         };
 
-        const folderName = 'Nisit'; // ชื่อโฟลเดอร์ที่ต้องการสร้างไฟล์ JSON ในนี้
-        const filename = folderName + '/' + `${uuid.cardID}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์
+        const folderName = 'DATABASE'; // ชื่อโฟลเดอร์ที่ต้องการสร้างไฟล์ JSON ในนี้
+        const filename = folderName + '/' + `${uuid.message}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์
 
         ftp.connect({
-            host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-            user: 'chayanon',
-            password: '0816538747'
+            host: host, 
+            user: user,
+            password: password
         });
 
         ftp.on('ready', () => {
-            // ตรวจสอบว่าโฟลเดอร์ "Nisit" มีอยู่หรือไม่
+            // ตรวจสอบว่าโฟลเดอร์ "DATABASE" มีอยู่หรือไม่
             ftp.list('/', (err, list) => {
                 if (err) {
                     console.error("Error occurred while checking folder:", err);
@@ -132,10 +146,10 @@ app.post('/writeJsonFileToFolderNisitInFTP', async(req, res) => {
                     return;
                 }
 
-                // ตรวจสอบว่าโฟลเดอร์ "Nisit" มีอยู่หรือไม่
+                // ตรวจสอบว่าโฟลเดอร์ "DATABASE" มีอยู่หรือไม่
                 const folderExists = list.some(item => item.type === 'd' && item.name === folderName);
 
-                // ถ้าโฟลเดอร์ยังไม่มีอยู่ ให้สร้างโฟลเดอร์ "Nisit" ก่อน
+                // ถ้าโฟลเดอร์ยังไม่มีอยู่ ให้สร้างโฟลเดอร์ "DATABASE" ก่อน
                 if (!folderExists) {
                     ftp.mkdir(folderName, (err) => {
                         if (err) {
@@ -149,7 +163,7 @@ app.post('/writeJsonFileToFolderNisitInFTP', async(req, res) => {
                         createJsonFile();
                     });
                 } else {
-                    // ถ้าโฟลเดอร์ "Nisit" มีอยู่แล้ว ให้ทำการสร้างไฟล์ JSON ทันที
+                    // ถ้าโฟลเดอร์ "DATABASE" มีอยู่แล้ว ให้ทำการสร้างไฟล์ JSON ทันที
                     createJsonFile();
                 }
             });
@@ -189,15 +203,26 @@ app.post('/topUpCashCard', async(req, res) => {
     try{
         let uuid = await callUUID();
 
+        if(uuid.status == false){
+            if(uuid.message == "กรุณาแนบบัตร"){
+                res.status(200).send("กรุณาแนบบัตร")
+                return;
+            }
+            else if(uuid.message == "ไม่พบเครื่องอ่านบัตร"){
+                res.status(200).send("ไม่พบเครื่องอ่านบัตร")
+                return;
+            }
+        }
+
         ftp.connect({
-            host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-            user: 'chayanon',
-            password: '0816538747'
+            host: host, 
+            user: user,
+            password: password
         });
     
         ftp.on('ready', () => {
-            const folderName = 'Nisit';
-            const filename = folderName + `/${uuid.cardID}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์และชื่อไฟล์
+            const folderName = 'DATABASE';
+            const filename = folderName + `/${uuid.message}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์และชื่อไฟล์
     
             ftp.get(filename, (err, stream) => {
                 if (err) {
@@ -255,15 +280,27 @@ app.post('/updateDataNisit', async(req, res) => {
 
     try{
         let uuid = await callUUID();
+
+        if(uuid.status == false){
+            if(uuid.message == "กรุณาแนบบัตร"){
+                res.status(200).send("กรุณาแนบบัตร")
+                return;
+            }
+            else if(uuid.message == "ไม่พบเครื่องอ่านบัตร"){
+                res.status(200).send("ไม่พบเครื่องอ่านบัตร")
+                return;
+            }
+        }
+
         ftp.connect({
-            host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-            user: 'chayanon',
-            password: '0816538747'
+            host: host, 
+            user: user,
+            password: password
         });
     
         ftp.on('ready', () => {
-            const folderName = 'Nisit';
-            const filename = folderName + `/${uuid.cardID}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์และชื่อไฟล์
+            const folderName = 'DATABASE';
+            const filename = folderName + `/${uuid.message}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์และชื่อไฟล์
     
             ftp.get(filename, (err, stream) => {
                 if (err) {
@@ -291,7 +328,7 @@ app.post('/updateDataNisit', async(req, res) => {
                         }
                         
                         // อัปเดตข้อมูลใน JSON
-                        let point = cash * 5 / 100; // ได้แต้ม 5% จากราคาชำระ
+                        //let point = cash * 5 / 100; // ได้แต้ม 5% จากราคาชำระ
                         jsonData.cash -= cash; // ลดจำนวนเงินในบัญชี
                         jsonData.point += point; // เพิ่มจำนวนแต้ม
     
@@ -330,26 +367,26 @@ app.get('/retrieveDataNisit', (req, res) => {
     const data = [];
 
     ftp.connect({
-        host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-        user: 'chayanon',
-        password: '0816538747'
+        host: host, 
+        user: user,
+        password: password
     });
 
     ftp.on('ready', () => {
-        ftp.list('/Nisit', (err, list) => {
+        ftp.list('/DATABASE', (err, list) => {
             if (err) {
                 console.error("Error occurred while listing files:", err);
                 res.status(500).send("Internal Server Error");
                 return;
             }
         
-            // วนลูปผ่านรายการไฟล์ในโฟลเดอร์ "Nisit"
+            // วนลูปผ่านรายการไฟล์ในโฟลเดอร์ "DATABASE"
             for (let i = 0; i < list.length; i++) {
                 const item = list[i];
                 // ตรวจสอบว่าไฟล์นี้เป็นไฟล์ที่ต้องการหรือไม่
                 if (item.type === '-') { // ตรวจสอบว่าเป็นไฟล์ (ไม่ใช่โฟลเดอร์)
                     const filename = item.name;
-                    const filepath = '/Nisit/' + filename;
+                    const filepath = '/DATABASE/' + filename;
         
                     // อ่านเนื้อหาของไฟล์
                     ftp.get(filepath, (err, stream) => {
@@ -385,19 +422,29 @@ app.get('/retrieveDataNisit', (req, res) => {
 
 app.post('/retrieveDataNisitWithUUID', async(req, res) => {
     const ftp = new ftpClient();
-
     try{
         let uuid = await callUUID();
 
+        if(uuid.status == false){
+            if(uuid.message == "กรุณาแนบบัตร"){
+                res.status(200).send("กรุณาแนบบัตร")
+                return;
+            }
+            else if(uuid.message == "ไม่พบเครื่องอ่านบัตร"){
+                res.status(200).send("ไม่พบเครื่องอ่านบัตร")
+                return;
+            }
+        }
+
         ftp.connect({
-            host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-            user: 'chayanon',
-            password: '0816538747'
+            host: host, 
+            user: user,
+            password: password
         });
     
         ftp.on('ready', () => {
-            const folderName = 'Nisit';
-            const filename = folderName + `/${uuid.cardID}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์และชื่อไฟล์
+            const folderName = 'DATABASE';
+            const filename = folderName + `/${uuid.message}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์และชื่อไฟล์
     
             ftp.get(filename, (err, stream) => {
                 if (err) {
@@ -512,7 +559,7 @@ app.get('/retrieveShop', (req, res) => {
         try {
             // แปลงข้อมูล JSON เป็น Object
             const shopData = JSON.parse(data);
-            res.json(shopData.data); // ส่ง response ค่าข้อมูลของร้านค้ากลับไป
+            res.json(shopData.payload); // ส่ง response ค่าข้อมูลของร้านค้ากลับไป
         } catch (error) {
             console.error("Error parsing JSON:", error);
             res.status(500).send("Internal Server Error");
@@ -548,9 +595,9 @@ app.post('/createTransactionShop', async(req, res) => {
         const filename = folderName + '/' + `${shopID}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์
 
         ftp.connect({
-            host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-            user: 'chayanon',
-            password: '0816538747'
+            host: host, 
+            user: user,
+            password: password
         });
 
         ftp.on('ready', () => {
@@ -579,7 +626,7 @@ app.post('/createTransactionShop', async(req, res) => {
                         createJsonFile();
                     });
                 } else {
-                    // ถ้าโฟลเดอร์ "Nisit" มีอยู่แล้ว ให้ทำการสร้างไฟล์ JSON ทันที
+                    // ถ้าโฟลเดอร์ "DATABASE" มีอยู่แล้ว ให้ทำการสร้างไฟล์ JSON ทันที
                     createJsonFile();
                 }
             });
@@ -676,6 +723,18 @@ app.post('/createTransactionPayment', async(req, res) => {
     
     try {
         let uuid = await callUUID();
+
+        if(uuid.status == false){
+            if(uuid.message == "กรุณาแนบบัตร"){
+                res.status(200).send("กรุณาแนบบัตร")
+                return;
+            }
+            else if(uuid.message == "ไม่พบเครื่องอ่านบัตร"){
+                res.status(200).send("ไม่พบเครื่องอ่านบัตร")
+                return;
+            }
+        }
+
         const product = req.body.product;
         const cash = req.body.cash;
         const point = req.body.point;
@@ -701,12 +760,12 @@ app.post('/createTransactionPayment', async(req, res) => {
         };
 
         const folderName = 'PAYMENT'; // ชื่อโฟลเดอร์ที่ต้องการสร้างไฟล์ JSON ในนี้
-        const filename = folderName + '/' + `${uuid.cardID}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์
+        const filename = folderName + '/' + `${uuid.message}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์
 
         ftp.connect({
-            host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-            user: 'chayanon',
-            password: '0816538747'
+            host: host, 
+            user: user,
+            password: password
         });
 
         ftp.on('ready', () => {
@@ -821,6 +880,18 @@ app.post('/createTransactionTopUp', async(req, res) => {
     
     try {
         let uuid = await callUUID();
+
+        if(uuid.status == false){
+            if(uuid.message == "กรุณาแนบบัตร"){
+                res.status(200).send("กรุณาแนบบัตร")
+                return;
+            }
+            else if(uuid.message == "ไม่พบเครื่องอ่านบัตร"){
+                res.status(200).send("ไม่พบเครื่องอ่านบัตร")
+                return;
+            }
+        }
+
         const cash = req.body.cash;
 
         const currentDate = new Date();
@@ -840,12 +911,12 @@ app.post('/createTransactionTopUp', async(req, res) => {
         };
 
         const folderName = 'TOPUP'; // ชื่อโฟลเดอร์ที่ต้องการสร้างไฟล์ JSON ในนี้
-        const filename = folderName + '/' + `${uuid.cardID}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์
+        const filename = folderName + '/' + `${uuid.message}.json`; // ระบุพาธของไฟล์ที่รวมถึงชื่อโฟลเดอร์
 
         ftp.connect({
-            host: '127.0.0.1', // เปลี่ยนเป็น host ของ FTP server ของคุณ
-            user: 'chayanon',
-            password: '0816538747'
+            host: host, 
+            user: user,
+            password: password
         });
 
         ftp.on('ready', () => {
