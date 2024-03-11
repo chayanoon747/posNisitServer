@@ -1,25 +1,57 @@
 {
     "payload":[
         {
-            "ShopID": "",
-            "name": "shop1",
-            "photoURL": "",
+            "ShopID": "A1",
+            "name": "ร้านเลียจาน",
+            "photoURL": "https://cdn.discordapp.com/attachments/1216411267284074536/1216430648689033377/logo1.jpg?ex=66005c52&is=65ede752&hm=2924f77b5248f63fb57d18cadb153917a7f9f2817ffb53ecf7c4740fe67ac861&",
             "menu":[
-                {"menu": "menu1", "price": 0},
-                {"menu": "menu2", "price": 0},
-                {"menu": "menu3", "price": 0},
-                {"menu": "menu4", "price": 0}
+                {"menu": "ผัดกะเพราหมูสับ", "price": 45},
+                {"menu": "ผัดกะเพราปลาหมึก", "price": 45},
+                {"menu": "ผัดกะเพราหมูกรอบ", "price": 45},
+                {"menu": "ผัดกะเพราไก่", "price": 45},
+                {"menu": "ผัดกะเพราเนื้อ", "price": 45},
+                {"menu": "ผัดกะเพรากุ้ง", "price": 45},
+                {"menu": "ผัดกะเพราทะเล", "price": 45},
+                {"menu": "เนื้อผัดน้ำมันหอย", "price": 40},
+                {"menu": "หมูผัดน้ำมันหอย", "price": 40},
+                {"menu": "หมูกระเทียม", "price": 40},
+                {"menu": "ไก่กระเทียม", "price": 40},
+                {"menu": "ข้าวไข่เจียว", "price": 30},
+                {"menu": "ไข่เจียวกุ้ง", "price": 30},
+                {"menu": "ไข่เจียวกุ้งชีส", "price": 30},
+                {"menu": "ไข่เจียวหมูสับ", "price": 30},
+                {"menu": "ไข่เจียวปู", "price": 30},
+                {"menu": "ข้าวผัดกุ้ง", "price": 50},
+                {"menu": "ข้าวผัดหมู", "price": 50},
+                {"menu": "ข้าวผัดทะเล", "price": 50},
+                {"menu": "ราดหน้าหมู", "price": 50}
             ]
         },
         {
-            "ShopID": "",
-            "name": "shop2",
-            "photoURL": "",
+            "ShopID": "A2",
+            "name": "ละมุน คาเฟ่",
+            "photoURL": "https://cdn.discordapp.com/attachments/1216411267284074536/1216432723065966772/logo2.jpg?ex=66005e41&is=65ede941&hm=4c6bde61c4b2ed7f5bfe249caf8e2d92f78e2b989df2782c9d07262e77dd3638&",
             "menu":[
-                {"menu": "menu1", "price": 0},
-                {"menu": "menu2", "price": 0},
-                {"menu": "menu3", "price": 0},
-                {"menu": "menu4", "price": 0}
+                {"menu": "อเมริกาโน่", "price": 60},
+                {"menu": "เอสเปรสโซ่", "price": 65},
+                {"menu": "ลาเต้", "price": 65},
+                {"menu": "คาปูชิโน่", "price": 65},
+                {"menu": "มอคค่า", "price": 70},
+                {"menu": "ชาดำ", "price": 55},
+                {"menu": "ชาเย็น", "price": 55},
+                {"menu": "ชาพีช", "price": 60},
+                {"menu": "ชามะนาว", "price": 60},
+                {"menu": "ชาน้ำผึ้งมะนาว", "price": 65},
+                {"menu": "เค้กช็อกโกแลต", "price": 65},
+                {"menu": "เค้กส้มวาเลนเซีย", "price": 70},
+                {"menu": "เค้กฝอยทอง", "price": 70},
+                {"menu": "เค้กสตรอว์เบอร์รี", "price": 75},
+                {"menu": "เค้กมัจชะครีมสด", "price": 85},
+                {"menu": "เครปเย็น", "price": 60},
+                {"menu": "แพนเค้ก", "price": 65},
+                {"menu": "พาร์เฟ่ต์", "price": 89},
+                {"menu": "พานาคอตต้า", "price": 89},
+                {"menu": "วาฟเฟิลเนยสด", "price": 89}
             ]
         }
     ]
